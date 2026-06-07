@@ -9,6 +9,8 @@ The application dives deep into your system architecture to read and display the
 - **CPU Temperature:** Monitors the real-time thermal status of your processor.
 - **GPU Temperature:** Reads the exact temperature of your graphics hardware (supporting NVIDIA, AMD, or Intel).
 - **Fully Customizable UI:** Font colors, text size, and screen positioning (via either real-time mouse drag-and-drop or preset grid layouts) are entirely under your control.
+- 
+<img width="298" height="44" alt="Ekran görüntüsü 2026-06-07 234411" src="https://github.com/user-attachments/assets/6cfa860a-1975-4b38-8655-3d3d29ce96e2" />
 
 ## 🛠 Technologies & Frameworks Used
 To achieve maximum accuracy and zero performance overhead, the project utilizes low-level Windows APIs and the following core components:
@@ -16,6 +18,8 @@ To achieve maximum accuracy and zero performance overhead, the project utilizes 
 - **`System.Management` (WMI)**: Utilized to query CPU and motherboard sensors for thermal telemetry.
 - **NVIDIA NVAPI & Performance Counters**: Leveraged to pull precise GPU diagnostics. It interfaces directly with native NVAPI for NVIDIA cards and generic Windows Performance Counters for AMD/Intel architectures.
 - **.NET 10.0 (WPF)**: Powering the ultra-smooth, hardware-accelerated, responsive control panel dashboard and the overlay layer.
+- 
+<img width="850" height="500" alt="Ekran görüntüsü 2026-06-07 234032" src="https://github.com/user-attachments/assets/8effca9e-32d4-4f59-8e9b-9a4d258a9d7a" />
 
 ## ⚠️ Important Note About the Beta Version
 This software is currently in its **BETA** stage. Due to variance in hardware configurations (especially motherboard sensor layouts) and evolving Windows core updates, you might encounter minor transient fluctuations, variations, or slight delays in thermal or frame rate readouts. Future updates will continually optimize these components based on your feedback.

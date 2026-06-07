@@ -1,0 +1,25 @@
+<Window x:Class="FPSOverlay.OverlayWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="FPS Overlay" SizeToContent="WidthAndHeight"
+        WindowStyle="None" AllowsTransparency="True" Background="Transparent"
+        Topmost="True" ShowInTaskbar="False" ResizeMode="NoResize"
+        Left="0" Top="0"
+        FontFamily="Segoe UI Variable Display, Segoe UI, sans-serif">
+    <Grid Background="Transparent">
+        <!-- Saf metin — arka plan yok, kutu yok, havada asılı duruyor -->
+        <TextBlock x:Name="OverlayText"
+                   Text="Başlatılıyor..."
+                   Foreground="#00E68A"
+                   FontSize="20"
+                   FontWeight="Bold"
+                   HorizontalAlignment="Center"
+                   VerticalAlignment="Center"
+                   Margin="10">
+            <!-- Siyah dış hat — bembeyaz sahnelerde jilet gibi okunabilirlik (Afterburner stili) -->
+            <TextBlock.Effect>
+                <DropShadowEffect Color="Black" BlurRadius="5" ShadowDepth="1" Opacity="1.0" Direction="315"/>
+            </TextBlock.Effect>
+        </TextBlock>
+    </Grid>
+</Window>

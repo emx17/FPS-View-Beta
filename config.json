@@ -1,0 +1,16 @@
+{
+  "ShowGpuName": false,
+  "ShowCpuTemp": true,
+  "ShowGpuTemp": true,
+  "FontSize": 17,
+  "FontFamily": "Orbitron, Rajdhani, Segoe UI Semibold, Consolas",
+  "TextColorHex": "#FF0033",
+  "OutlineColorHex": "#000000",
+  "PositionPreset": 0,
+  "PositionPadding": 30,
+  "OverlayX": 0,
+  "OverlayY": 108,
+  "PositionLocked": true,
+  "Language": "TR",
+  "SelectedGpuName": "NVIDIA GeForce RTX 2050"
+}

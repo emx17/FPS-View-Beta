@@ -2,6 +2,8 @@
 
 **emx17 FPS Viewer** is a sleek, modern, and fully gamer-themed system monitor (overlay) tool that allows you to track your in-game performance in real-time. Operating seamlessly on Windows, it displays crucial hardware metrics at any corner of your screen without distracting you from your gameplay.
 
+<img width="850" height="500" alt="image" src="https://github.com/user-attachments/assets/6614b4f7-b8bd-47b0-aff4-5aa1cce00e0d" />
+
 ## 🚀 What's New in v2.0?
 
 - **Native C# ETW Engine:** Eliminated the legacy C++ background helper process. FPS tracking is now natively integrated using `Microsoft.Diagnostics.Tracing.TraceEvent` for zero-overhead, direct Windows Kernel monitoring.

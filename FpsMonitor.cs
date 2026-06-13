@@ -1,153 +1,174 @@
-using System;
-using System.Collections.Concurrent;
+﻿using System;
 using System.Diagnostics;
-using System.Linq;
 using System.Threading;
+using System.Threading.Tasks;
+using Microsoft.Diagnostics.Tracing;
 using Microsoft.Diagnostics.Tracing.Session;
 
 namespace FPSOverlay
 {
     public class FpsMonitor : IDisposable
     {
-        private Thread _etwThread;
-        private Thread _calcThread;
-        private volatile bool _isRunning = true;
+        public int CurrentFps { get; private set; } = 0;
+        
+        private int _activePid = 0;
+        private CancellationTokenSource? _cts;
+        private Task? _etwTask;
         private TraceEventSession? _session;
 
-        public int CurrentFps { get; private set; } = 0;
+        private static readonly Guid DXGI_PROVIDER = new Guid(0xCA11C036, 0x0102, 0x4A2D, 0xA6, 0xAD, 0xF0, 0x3C, 0xFE, 0xD5, 0xD3, 0xC9);
+        private static readonly Guid D3D9_PROVIDER = new Guid(0x783ACA0A, 0x790E, 0x4D7F, 0x84, 0x51, 0xAA, 0x85, 0x05, 0x11, 0xC6, 0xB9);
+        private static readonly Guid DXGKRNL_PROVIDER = new Guid(0x802EC45A, 0x1E99, 0x4B83, 0x99, 0x20, 0x87, 0xC9, 0x82, 0x77, 0xBA, 0x9D);
 
-        // Aktif pencerenin PID'si
-        private volatile int _activePid = 0;
-
-        // Her thread için kare sayısı (saf sayaç)
-        private ConcurrentDictionary<int, int> _threadFrameCounts = new();
+        private const int DXGKRNL_EVENT_PRESENT_INFO = 184; // 0x00B8
+        private const int DXGKRNL_EVENT_FLIP_INFO    = 168; // 0x00A8
+        private const int DXGKRNL_EVENT_BLIT_INFO    = 166; // 0x00A6
 
         public FpsMonitor()
         {
-            _calcThread = new Thread(CalculateFpsLoop)
-            {
-                IsBackground = true,
-                Priority = ThreadPriority.Normal
-            };
-            _calcThread.Start();
-
-            _etwThread = new Thread(EtwLoop)
-            {
-                IsBackground = true,
-                Priority = ThreadPriority.BelowNormal
-            };
-            _etwThread.Start();
+            _cts = new CancellationTokenSource();
+            _etwTask = Task.Run(() => EtwLoop(_cts.Token), _cts.Token);
+            Task.Run(() => CalculationLoop(_cts.Token), _cts.Token);
         }
 
-        private void EtwLoop()
+        private int _dxgiCount = 0;
+        private int _d3d9Count = 0;
+        private int _dxgKrnlCount = 0;
+        private double _startTs = 0;
+        private int _lastPid = 0;
+        
+        private void EtwLoop(CancellationToken token)
         {
             try
             {
-                foreach (var sName in TraceEventSession.GetActiveSessionNames())
+                if (TraceEventSession.GetActiveSessionNames().Contains("emx17_Native_Session"))
                 {
-                    if (sName.StartsWith("FPSOverlay_ETW_Session_"))
-                    {
-                        try
-                        {
-                            var oldSession = TraceEventSession.GetActiveSession(sName);
-                            oldSession?.Stop();
-                            oldSession?.Dispose();
-                        }
-                        catch { }
-                    }
+                    var existing = new TraceEventSession("emx17_Native_Session");
+                    existing.Dispose();
                 }
 
-                string sessionName = "FPSOverlay_ETW_Session_" + Guid.NewGuid().ToString()[..8];
-                using (_session = new TraceEventSession(sessionName))
+                using (_session = new TraceEventSession("emx17_Native_Session"))
                 {
                     _session.StopOnDispose = true;
+                    _session.EnableProvider(DXGI_PROVIDER, TraceEventLevel.Informational);
+                    _session.EnableProvider(D3D9_PROVIDER, TraceEventLevel.Informational);
+                    _session.EnableProvider(DXGKRNL_PROVIDER, TraceEventLevel.Informational, 0x8000000 | 0x1);
 
-                    var dxgKrnlProvider = Guid.Parse("802ec45a-1e99-4b83-9920-87c98277ba9d");
-                    _session.EnableProvider(dxgKrnlProvider, Microsoft.Diagnostics.Tracing.TraceEventLevel.Informational, 0);
-
-                    _session.Source.Dynamic.All += (data) =>
+                    _session.Source.Dynamic.All += (TraceEvent data) =>
                     {
-                        if (!_isRunning) return;
+                        if (token.IsCancellationRequested) return;
 
-                        if (data.EventName != null &&
-                            data.EventName.Equals("Present", StringComparison.OrdinalIgnoreCase))
+                        int target = _activePid;
+                        int pid = data.ProcessID;
+                        if (target == 0 || pid != target) return;
+
+                        bool isValid = false;
+                        bool isDxgi = false;
+                        bool isD3D9 = false;
+                        bool isDxgKrnl = false;
+
+                        if (data.ProviderGuid == DXGI_PROVIDER && (int)data.ID == 42)
                         {
-                            int cachedPid = _activePid;
-                            if (data.ProcessID == cachedPid && cachedPid != 0)
+                            isValid = true;
+                            isDxgi = true;
+                        }
+                        else if (data.ProviderGuid == D3D9_PROVIDER && (int)data.ID == 1)
+                        {
+                            isValid = true;
+                            isD3D9 = true;
+                        }
+                        else if (data.ProviderGuid == DXGKRNL_PROVIDER)
+                        {
+                            if ((int)data.ID == DXGKRNL_EVENT_PRESENT_INFO || 
+                                (int)data.ID == DXGKRNL_EVENT_FLIP_INFO || 
+                                (int)data.ID == DXGKRNL_EVENT_BLIT_INFO)
                             {
-                                // Her zaman güncel sözlük referansını kullan
-                                _threadFrameCounts.AddOrUpdate(data.ThreadID, 1, (_, count) => count + 1);
+                                isValid = true;
+                                isDxgKrnl = true;
                             }
+                        }
+
+                        if (!isValid) return;
+
+                        double ts = data.TimeStampRelativeMSec / 1000.0;
+
+                        if (pid != _lastPid)
+                        {
+                            _lastPid = pid;
+                            _dxgiCount = 0;
+                            _d3d9Count = 0;
+                            _dxgKrnlCount = 0;
+                            _startTs = ts;
+                        }
+
+                        if (isDxgi) Interlocked.Increment(ref _dxgiCount);
+                        if (isD3D9) Interlocked.Increment(ref _d3d9Count);
+                        if (isDxgKrnl) Interlocked.Increment(ref _dxgKrnlCount);
+
+                        double elapsed = ts - _startTs;
+                        if (elapsed >= 1.0)
+                        {
+                            int frameCount = 0;
+                            if (_d3d9Count > 0) frameCount = _d3d9Count;
+                            else if (_dxgiCount > 0) frameCount = _dxgiCount;
+                            else if (_dxgKrnlCount > 0)
+                            {
+                                float potential = (float)_dxgKrnlCount / (float)elapsed;
+                                if (potential >= 20.0f) frameCount = _dxgKrnlCount;
+                            }
+
+                            if (frameCount > 0)
+                                CurrentFps = (int)((float)frameCount / (float)elapsed);
+                            else
+                                CurrentFps = 0;
+
+                            _dxgiCount = 0;
+                            _d3d9Count = 0;
+                            _dxgKrnlCount = 0;
+                            _startTs = ts;
                         }
                     };
 
                     _session.Source.Process();
                 }
             }
-            catch (UnauthorizedAccessException)
+            catch { }
+        }
+
+        private void CalculationLoop(CancellationToken token)
+        {
+            while (!token.IsCancellationRequested)
             {
-                CurrentFps = -1;
-            }
-            catch
-            {
-                CurrentFps = -1;
+                Thread.Sleep(250);
+                if (_activePid == 0) CurrentFps = 0;
+                
+
             }
         }
 
-        private void CalculateFpsLoop()
+        public void RefreshFps()
         {
-            var sw = new Stopwatch();
-
-            while (_isRunning)
+            IntPtr hwnd = Win32Api.GetForegroundWindow();
+            if (hwnd != IntPtr.Zero)
             {
-                IntPtr hwnd = Win32Api.GetForegroundWindow();
-                if (hwnd != IntPtr.Zero)
+                Win32Api.GetWindowThreadProcessId(hwnd, out uint pid);
+                int currentForegroundPid = (int)pid;
+                
+                if (currentForegroundPid != 0 && currentForegroundPid != Process.GetCurrentProcess().Id)
                 {
-                    Win32Api.GetWindowThreadProcessId(hwnd, out uint pid);
-                    _activePid = (int)pid;
-                }
-
-                sw.Restart();
-                // Tam olarak 1 saniye bekle
-                Thread.Sleep(1000);
-                sw.Stop();
-
-                // Atomik olarak sözlüğü yenisiyle değiştir (Kayıp frame olmasını engeller)
-                var currentCounts = Interlocked.Exchange(ref _threadFrameCounts, new ConcurrentDictionary<int, int>());
-
-                int maxFrames = 0;
-                foreach (var count in currentCounts.Values)
-                {
-                    if (count > maxFrames)
-                        maxFrames = count;
-                }
-
-                // Saniyede bir net sıfırlanan, saf FPS (Filtresiz)
-                int rawFps = (int)Math.Round(maxFrames / sw.Elapsed.TotalSeconds);
-
-                // Stabilizasyon (Dalgalanmayı Önleme)
-                if (CurrentFps <= 0)
-                {
-                    CurrentFps = rawFps;
-                }
-                else
-                {
-                    // %70 anlık, %30 önceki frame (hızlı tepki verir ama ani sıçramaları törpüler)
-                    CurrentFps = (int)Math.Round(CurrentFps * 0.3 + rawFps * 0.7);
+                    _activePid = currentForegroundPid;
                 }
             }
         }
 
         public void Dispose()
         {
-            _isRunning = false;
-
-            try
+            _cts?.Cancel();
+            if (_session != null)
             {
-                _session?.Source.StopProcessing();
-                _session?.Dispose();
+                try { _session.StopOnDispose = true; _session.Dispose(); } catch { }
             }
-            catch { }
         }
     }
 }
+

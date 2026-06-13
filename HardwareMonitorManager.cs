@@ -17,7 +17,7 @@ namespace FPSOverlay
         private List<string> _availableGpus = new List<string>();
         public IReadOnlyList<string> AvailableGpus => _availableGpus;
 
-        // --- NVAPI Dinamik Yükleme (AMD/Intel sistemlerde çökmemesi için) ---
+        // --- Dynamic NVAPI Loading (prevents crashes on AMD/Intel systems) ---
         [DllImport("kernel32.dll", SetLastError = true)]
         private static extern IntPtr LoadLibrary(string lpFileName);
 
@@ -74,10 +74,10 @@ namespace FPSOverlay
         {
             try
             {
-                // Dinamik yükleme: nvapi64.dll yoksa (AMD/Intel sistem) hata fırlatmaz, sadece false döner
+                // Dynamic loading: if nvapi64.dll is missing (AMD/Intel system) it doesn't throw an error, just returns false
                 string dllName = Environment.Is64BitProcess ? "nvapi64.dll" : "nvapi.dll";
                 IntPtr nvapiModule = LoadLibrary(dllName);
-                if (nvapiModule == IntPtr.Zero) return; // NVIDIA sürücüsü yüklü değil, sorunsuz geç
+                if (nvapiModule == IntPtr.Zero) return; // NVIDIA driver not installed, skip gracefully
 
                 IntPtr queryInterfacePtr = GetProcAddress(nvapiModule, "nvapi_QueryInterface");
                 if (queryInterfacePtr == IntPtr.Zero) return;
@@ -115,7 +115,7 @@ namespace FPSOverlay
                 {
                     foreach (ManagementObject obj in searcher.Get())
                     {
-                        string name = obj["Name"]?.ToString() ?? "Bilinmeyen GPU";
+                        string name = obj["Name"]?.ToString() ?? "Bilinmeyen GPU / Unknown GPU";
                         _availableGpus.Add(name);
 
                         if (name.Contains("AMD", StringComparison.OrdinalIgnoreCase) || name.Contains("Radeon", StringComparison.OrdinalIgnoreCase))
@@ -128,7 +128,7 @@ namespace FPSOverlay
             catch { }
             
             if (_availableGpus.Count == 0)
-                _availableGpus.Add("Bilinmeyen GPU");
+                _availableGpus.Add("Bilinmeyen GPU / Unknown GPU");
         }
 
         public int GetCpuTemperature()
@@ -145,7 +145,7 @@ namespace FPSOverlay
                 }
             }
             catch { }
-            return 0; // Eğer yetki yoksa N/A yerine 0 döner, Overlay'de düzgün gözükür.
+            return 0; // Returns 0 instead of N/A if lacking permissions, so overlay displays nicely.
         }
 
         public int GetGpuTemperature(string selectedGpuName)
@@ -233,6 +233,7 @@ namespace FPSOverlay
 
         public int GetCurrentFps()
         {
+            _fpsMonitor.RefreshFps();
             return _fpsMonitor.CurrentFps;
         }
 
@@ -240,7 +241,21 @@ namespace FPSOverlay
         {
             string formattedText = "[{gpu_name}]  |  FPS: {fps}  |  CPU: {cpu_temp}°C  |  GPU: {gpu_temp}°C";
 
-            string gpuName = string.IsNullOrEmpty(config.SelectedGpuName) ? (config.Language == "EN" ? "Unknown GPU" : "Bilinmeyen GPU") : config.SelectedGpuName;
+            string defaultGpuName = "Unknown GPU";
+            string adminReq = "ADMIN REQUIRED!";
+            string lang = config.Language ?? "EN";
+            switch (lang)
+            {
+                case "TR": defaultGpuName = "Bilinmeyen GPU"; adminReq = "YÖNETİCİ İZNİ GEREKLİ!"; break;
+                case "DE": defaultGpuName = "Unbekannte GPU"; adminReq = "ADMIN-RECHTE ERFORDERLICH!"; break;
+                case "ES": defaultGpuName = "GPU Desconocida"; adminReq = "¡SE REQUIERE ADMINISTRADOR!"; break;
+                case "FR": defaultGpuName = "GPU Inconnu"; adminReq = "ADMINISTRATEUR REQUIS !"; break;
+                case "PT": defaultGpuName = "GPU Desconhecida"; adminReq = "ADMINISTRADOR NECESSÁRIO!"; break;
+                case "BR": defaultGpuName = "GPU Desconhecida"; adminReq = "NECESSÁRIO ADMINISTRADOR!"; break;
+                case "RU": defaultGpuName = "Неизвестная GPU"; adminReq = "ТРЕБУЮТСЯ ПРАВА АДМИНИСТРАТОРА!"; break;
+            }
+
+            string gpuName = string.IsNullOrEmpty(config.SelectedGpuName) ? defaultGpuName : config.SelectedGpuName;
 
             if (!config.ShowGpuName)
             {
@@ -249,9 +264,7 @@ namespace FPSOverlay
             }
 
             int fps = GetCurrentFps();
-            string fpsText = fps == -1 
-                ? (config.Language == "EN" ? "ADMIN REQUIRED!" : "YÖNETİCİ İZNİ GEREKLİ!") 
-                : fps.ToString();
+            string fpsText = fps == -1 ? adminReq : fps.ToString();
             formattedText = formattedText.Replace("{fps}", fpsText);
             formattedText = formattedText.Replace("{gpu_name}", gpuName);
 
@@ -295,3 +308,4 @@ namespace FPSOverlay
         }
     }
 }
+

@@ -250,7 +250,7 @@
                         <TextBlock Text="emx17 FPS Viewer Beta" Foreground="#888888" FontSize="11" FontWeight="Bold" VerticalAlignment="Center"/>
                     </StackPanel>
                     <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
-                        <Button Content="─" Style="{StaticResource TitleBarBtn}" Click="BtnMinimize_Click"/>
+                        <Button Content="—" Style="{StaticResource TitleBarBtn}" Click="BtnMinimize_Click"/>
                         <Button Content="✕" Style="{StaticResource CloseBtn}" Click="BtnClose_Click" Margin="2,0,0,0"/>
                     </StackPanel>
                 </Grid>
@@ -275,6 +275,12 @@
                             <ComboBox x:Name="CmbLanguage" Height="26" FontSize="12" SelectionChanged="InteractiveElement_Changed">
                                 <ComboBoxItem Content="Türkçe (TR)" Tag="TR"/>
                                 <ComboBoxItem Content="English (EN)" Tag="EN"/>
+                                <ComboBoxItem Content="Deutsch (DE)" Tag="DE"/>
+                                <ComboBoxItem Content="Español (ES)" Tag="ES"/>
+                                <ComboBoxItem Content="Français (FR)" Tag="FR"/>
+                                <ComboBoxItem Content="Português (PT)" Tag="PT"/>
+                                <ComboBoxItem Content="Português Brasil (BR)" Tag="BR"/>
+                                <ComboBoxItem Content="Русский (RU)" Tag="RU"/>
                             </ComboBox>
                         </StackPanel>
                     </Border>
@@ -319,7 +325,7 @@
                     <Border Style="{StaticResource SectionCard}">
                         <StackPanel>
                             <TextBlock x:Name="LblPosition" Text="POZİSYON &amp; HİZALAMA" Style="{StaticResource SectionHeader}"/>
-                            <CheckBox x:Name="ChkPositionUnlock" Style="{StaticResource ToggleSwitch}" Content="🔓 Pozisyon Kilidini Aç (Sürükle)" Checked="InteractiveElement_Changed" Unchecked="InteractiveElement_Changed"/>
+                            <CheckBox x:Name="ChkPositionUnlock" Style="{StaticResource ToggleSwitch}" Content="ğŸ”“ Pozisyon Kilidini Aç (Sürükle)" Checked="InteractiveElement_Changed" Unchecked="InteractiveElement_Changed"/>
                                       
                             <Grid Margin="0,4,0,0">
                                 <Grid.ColumnDefinitions>
@@ -396,7 +402,10 @@
                     </Border>
                 </StackPanel>
 
+                <TextBlock Grid.Column="2" Text="Version Beta v2.0" Foreground="#444444" FontSize="10" 
+                           HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="0,0,-6,-6"/>
             </Grid>
         </Grid>
     </Border>
 </Window>
+

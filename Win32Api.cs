@@ -5,7 +5,7 @@ namespace FPSOverlay
 {
     public static class Win32Api
     {
-        // --- GÖRÜNMEZLİK VE TIKLAMALARI ARKAYA GEÇİRME İÇİN (Layered / Transparent) ---
+        // --- FOR INVISIBILITY AND CLICK-THROUGH (Layered / Transparent) ---
         public const int GWL_EXSTYLE = -20;
         public const int WS_EX_LAYERED = 0x00080000;
         public const int WS_EX_TRANSPARENT = 0x00000020;
@@ -17,14 +17,14 @@ namespace FPSOverlay
         [DllImport("user32.dll", SetLastError = true)]
         public static extern int SetWindowLong(IntPtr hWnd, int nIndex, int dwNewLong);
 
-        // --- AKTİF PENCERE TESPİTİ İÇİN ---
+        // --- FOR ACTIVE WINDOW DETECTION ---
         [DllImport("user32.dll")]
         public static extern IntPtr GetForegroundWindow();
 
         [DllImport("user32.dll", SetLastError = true)]
         public static extern uint GetWindowThreadProcessId(IntPtr hWnd, out uint lpdwProcessId);
 
-        // --- ZORUNLU EN ÜSTTE KALMA İÇİN ---
+        // --- FOR FORCED TOPMOST BEHAVIOR ---
         [DllImport("user32.dll", SetLastError = true)]
         public static extern bool SetWindowPos(IntPtr hWnd, IntPtr hWndInsertAfter, int X, int Y, int cx, int cy, uint uFlags);
 
@@ -38,3 +38,4 @@ namespace FPSOverlay
         public const uint SWP_SHOWWINDOW = 0x0040;
     }
 }
+

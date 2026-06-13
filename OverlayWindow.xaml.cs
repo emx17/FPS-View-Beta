@@ -29,7 +29,7 @@ namespace FPSOverlay
             ApplyConfig();
 
             _updateTimer = new DispatcherTimer();
-            _updateTimer.Interval = TimeSpan.FromMilliseconds(400);
+            _updateTimer.Interval = TimeSpan.FromMilliseconds(250);
             _updateTimer.Tick += UpdateTimer_Tick;
             _updateTimer.Start();
             
@@ -51,7 +51,7 @@ namespace FPSOverlay
                 OverlayText.Foreground = System.Windows.Media.Brushes.Lime;
             }
 
-            // Pozisyonu Güncelle
+            // Update Position
             if (_hwnd != IntPtr.Zero)
             {
                 UpdatePositionAndLockState();
@@ -64,13 +64,13 @@ namespace FPSOverlay
             {
                 this.DragMove();
 
-                // Kullanıcı fareyi bıraktığında (DragMove tamamlandığında) çalışır
+                // Triggers when the user releases the mouse (DragMove completes)
                 ClampPosition();
                 _config.OverlayX = this.Left;
                 _config.OverlayY = this.Top;
                 _config.Save();
 
-                // Kontrol panelindeki X ve Y numaratörlerini güncellemek için event fırlat
+                // Fire an event to update the X and Y numerators in the control panel
                 OnPositionChanged?.Invoke(this.Left, this.Top);
             }
         }
@@ -92,10 +92,10 @@ namespace FPSOverlay
 
             _hwnd = new WindowInteropHelper(this).Handle;
             
-            // Sınır güvenliği ve pozisyonlandırma
+            // Boundary security and positioning
             ClampPosition();
             
-            if (_config.OverlayX == -1) // İlk açılış veya varsayılan
+            if (_config.OverlayX == -1) // First launch or default
             {
                 this.Left = SystemParameters.PrimaryScreenWidth - this.Width;
                 this.Top = _config.OverlayY;
@@ -125,13 +125,13 @@ namespace FPSOverlay
 
             if (_config.PositionLocked)
             {
-                // Tıklanamaz (Click-Through)
+                // Unclickable (Click-Through)
                 exStyle |= Win32Api.WS_EX_TRANSPARENT;
                 OverlayText.Cursor = System.Windows.Input.Cursors.Arrow;
             }
             else
             {
-                // Tıklanabilir ve Taşınabilir
+                // Clickable and Movable
                 exStyle &= ~Win32Api.WS_EX_TRANSPARENT;
                 OverlayText.Cursor = System.Windows.Input.Cursors.SizeAll;
             }
@@ -234,3 +234,4 @@ namespace FPSOverlay
         }
     }
 }
+

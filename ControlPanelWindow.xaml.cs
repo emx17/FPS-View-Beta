@@ -59,7 +59,14 @@ namespace FPSOverlay
             SliderFontSize.Value = _config.FontSize;
             SliderPadding.Value = _config.PositionPadding;
             
-            CmbLanguage.SelectedIndex = _config.Language == "TR" ? 0 : 1;
+            for (int i = 0; i < CmbLanguage.Items.Count; i++)
+            {
+                if (CmbLanguage.Items[i] is ComboBoxItem item && item.Tag?.ToString() == _config.Language)
+                {
+                    CmbLanguage.SelectedIndex = i;
+                    break;
+                }
+            }
             
             switch (_config.PositionPreset)
             {
@@ -79,23 +86,109 @@ namespace FPSOverlay
 
         private void ApplyLanguage()
         {
-            bool isTr = _config.Language == "TR";
-            Title = isTr ? "FPS Overlay - Kontrol Paneli" : "FPS Overlay - Control Panel";
-            
-            LblLanguage.Text = isTr ? "DİL / LANGUAGE" : "LANGUAGE";
-            LblGpuSelect.Text = isTr ? "AKTİF GPU SEÇİMİ" : "ACTIVE GPU";
-            
-            ChkShowGpuName.Content = isTr ? "GPU Adını Göster" : "Show GPU Name";
-            ChkShowCpu.Content = isTr ? "CPU Sıcaklığı" : "CPU Temp";
-            ChkShowGpu.Content = isTr ? "GPU Sıcaklığı" : "GPU Temp";
-            ChkPositionUnlock.Content = isTr ? "Pozisyon Kilidini Aç (Sürükle)" : "Unlock Position (Drag)";
+            string lang = _config.Language ?? "EN";
+
+            string tTitle = "emx17_FPSViewer - Control Panel";
+            string tLang = "LANGUAGE";
+            string tGpuSelect = "ACTIVE GPU";
+            string tAppearance = "APPEARANCE";
+            string tOverlayColor = "Overlay Color";
+            string tFontSize = "Font Size";
+            string tPosition = "POSITION & ALIGNMENT";
+            string tPadding = "Padding";
+            string tSensors = "SENSORS";
+            string tOverlayCtrl = "OVERLAY CONTROL";
+            string tOverlayToggle = "Show / hide on screen";
+            string tShowGpuName = "Show GPU Name";
+            string tShowCpu = "CPU Temp";
+            string tShowGpu = "GPU Temp";
+            string tPosUnlock = "Unlock Position (Drag)";
+
+            switch (lang)
+            {
+                case "TR":
+                    tTitle = "emx17_FPSViewer - Kontrol Paneli"; tLang = "DİL / LANGUAGE"; tGpuSelect = "AKTİF GPU SEÇİMİ";
+                    tAppearance = "GÖRÜNÜM"; tOverlayColor = "Overlay Rengi"; tFontSize = "Yazı Boyutu";
+                    tPosition = "POZİSYON & HİZALAMA"; tPadding = "Kenar Boşluğu"; tSensors = "SENSÖRLER";
+                    tOverlayCtrl = "OVERLAY KONTROL"; tOverlayToggle = "Ekranda göster / gizle";
+                    tShowGpuName = "GPU Adını Göster"; tShowCpu = "CPU Sıcaklığı"; tShowGpu = "GPU Sıcaklığı";
+                    tPosUnlock = "Pozisyon Kilidini Aç (Sürükle)";
+                    break;
+                case "DE":
+                    tTitle = "emx17_FPSViewer - Systemsteuerung"; tLang = "SPRACHE"; tGpuSelect = "AKTIVE GPU";
+                    tAppearance = "ERSCHEINUNGSBILD"; tOverlayColor = "Overlay-Farbe"; tFontSize = "Schriftgröße";
+                    tPosition = "POSITION & AUSRICHTUNG"; tPadding = "Abstand (Padding)"; tSensors = "SENSOREN";
+                    tOverlayCtrl = "OVERLAY-STEUERUNG"; tOverlayToggle = "Auf dem Bildschirm ein-/ausblenden";
+                    tShowGpuName = "GPU-Namen anzeigen"; tShowCpu = "CPU-Temp"; tShowGpu = "GPU-Temp";
+                    tPosUnlock = "Position entsperren (Ziehen)";
+                    break;
+                case "ES":
+                    tTitle = "emx17_FPSViewer - Panel de Control"; tLang = "IDIOMA"; tGpuSelect = "GPU ACTIVA";
+                    tAppearance = "APARIENCIA"; tOverlayColor = "Color del Overlay"; tFontSize = "Tamaño de Fuente";
+                    tPosition = "POSICIÓN Y ALINEACIÓN"; tPadding = "Margen"; tSensors = "SENSORES";
+                    tOverlayCtrl = "CONTROL DEL OVERLAY"; tOverlayToggle = "Mostrar / ocultar en pantalla";
+                    tShowGpuName = "Mostrar Nombre de GPU"; tShowCpu = "Temp. CPU"; tShowGpu = "Temp. GPU";
+                    tPosUnlock = "Desbloquear Posición (Arrastrar)";
+                    break;
+                case "FR":
+                    tTitle = "emx17_FPSViewer - Panneau de Configuration"; tLang = "LANGUE"; tGpuSelect = "GPU ACTIF";
+                    tAppearance = "APPARENCE"; tOverlayColor = "Couleur de l'Overlay"; tFontSize = "Taille de Police";
+                    tPosition = "POSITION ET ALIGNEMENT"; tPadding = "Marge"; tSensors = "CAPTEURS";
+                    tOverlayCtrl = "CONTRÃ”LE DE L'OVERLAY"; tOverlayToggle = "Afficher / masquer à l'écran";
+                    tShowGpuName = "Afficher le nom du GPU"; tShowCpu = "Temp. CPU"; tShowGpu = "Temp. GPU";
+                    tPosUnlock = "Déverrouiller la Position (Glisser)";
+                    break;
+                case "PT":
+                    tTitle = "emx17_FPSViewer - Painel de Controlo"; tLang = "IDIOMA"; tGpuSelect = "GPU ATIVA";
+                    tAppearance = "APARÊNCIA"; tOverlayColor = "Cor do Overlay"; tFontSize = "Tamanho da Fonte";
+                    tPosition = "POSIÇÃO E ALINHAMENTO"; tPadding = "Margem"; tSensors = "SENSORES";
+                    tOverlayCtrl = "CONTROLO DO OVERLAY"; tOverlayToggle = "Mostrar / ocultar no ecrã";
+                    tShowGpuName = "Mostrar Nome da GPU"; tShowCpu = "Temp. CPU"; tShowGpu = "Temp. GPU";
+                    tPosUnlock = "Desbloquear Posição (Arrastar)";
+                    break;
+                case "BR":
+                    tTitle = "emx17_FPSViewer - Painel de Controle"; tLang = "IDIOMA"; tGpuSelect = "GPU ATIVA";
+                    tAppearance = "APARÊNCIA"; tOverlayColor = "Cor do Overlay"; tFontSize = "Tamanho da Fonte";
+                    tPosition = "POSIÇÃO E ALINHAMENTO"; tPadding = "Margem"; tSensors = "SENSORES";
+                    tOverlayCtrl = "CONTROLE DO OVERLAY"; tOverlayToggle = "Mostrar / ocultar na tela";
+                    tShowGpuName = "Mostrar Nome da GPU"; tShowCpu = "Temp. CPU"; tShowGpu = "Temp. GPU";
+                    tPosUnlock = "Desbloquear Posição (Arrastar)";
+                    break;
+                case "RU":
+                    tTitle = "emx17_FPSViewer - Панель управления"; tLang = "ЯЗЫК"; tGpuSelect = "АКТИВНАЯ GPU";
+                    tAppearance = "ВНЕШНИЙ ВИД"; tOverlayColor = "Цвет Оверлея"; tFontSize = "Размер Шрифта";
+                    tPosition = "ПОЗИЦИЯ И ВЫРАВНИВАНИЕ"; tPadding = "Отступ"; tSensors = "ДАТЧИКИ";
+                    tOverlayCtrl = "УПРАВЛЕНИЕ ОВЕРЛЕЕМ"; tOverlayToggle = "Показать / скрыть на экране";
+                    tShowGpuName = "Показать Имя GPU"; tShowCpu = "Темп. CPU"; tShowGpu = "Темп. GPU";
+                    tPosUnlock = "Разблокировать Позицию (Перетащить)";
+                    break;
+            }
+
+            Title = tTitle;
+            LblLanguage.Text = tLang;
+            LblGpuSelect.Text = tGpuSelect;
+            LblAppearance.Text = tAppearance;
+            LblOverlayColor.Text = tOverlayColor;
+            LblFontSize.Text = tFontSize;
+            LblPosition.Text = tPosition;
+            LblPadding.Text = tPadding;
+            LblSensors.Text = tSensors;
+            LblOverlayCtrl.Text = tOverlayCtrl;
+            LblOverlayToggle.Text = tOverlayToggle;
+            ChkShowGpuName.Content = tShowGpuName;
+            ChkShowCpu.Content = tShowCpu;
+            ChkShowGpu.Content = tShowGpu;
+            ChkPositionUnlock.Content = tPosUnlock;
         }
 
         private void SaveAndApply()
         {
             if (_config == null) return; 
 
-            _config.Language = CmbLanguage.SelectedIndex == 0 ? "TR" : "EN";
+            if (CmbLanguage.SelectedItem is ComboBoxItem item && item.Tag != null)
+                _config.Language = item.Tag.ToString();
+            else
+                _config.Language = "EN";
             _config.SelectedGpuName = CmbGpuSelector.SelectedItem?.ToString() ?? "";
             
             _config.ShowGpuName = ChkShowGpuName.IsChecked == true;
@@ -123,7 +216,7 @@ namespace FPSOverlay
             _onConfigChanged?.Invoke();
             _hwManager.TriggerUpdate();
 
-            // Overlay aç/kapa toggle
+            // Overlay on/off toggle
             _onOverlayToggle?.Invoke(ChkOverlayActive.IsChecked == true);
         }
 
@@ -221,3 +314,4 @@ namespace FPSOverlay
         }
     }
 }
+

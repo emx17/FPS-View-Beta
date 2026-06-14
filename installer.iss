@@ -49,7 +49,9 @@ begin
     begin
       DownloadPage := CreateDownloadPage(SetupMessage(msgWizardPreparing), SetupMessage(msgPreparingDesc), nil);
       DownloadPage.Clear;
-      DownloadPage.Add('https://download.visualstudio.microsoft.com/download/pr/9b85c156-f047-49d7-8488-8cd357604fdb/6ca5fc0e86b0a1a011030eeb87dca1f5/windowsdesktop-runtime-8.0.6-win-x64.exe', 'dotnet_desktop.exe', '');
+      
+      // Net 8.0 downlaod link
+      DownloadPage.Add('https://aka.ms/dotnet/8.0/windowsdesktop-runtime-win-x64.exe', 'dotnet_desktop.exe', '');
       
       DownloadPage.Show;
       try
@@ -57,7 +59,7 @@ begin
           DownloadPage.Download;
           Exec(ExpandConstant('{tmp}\dotnet_desktop.exe'), '/install /quiet /norestart', '', SW_SHOW, ewWaitUntilTerminated, ResultCode);
         except
-          MsgBox('Gereksinimler indirilemedi (.NET 8). Lütfen internet baglantinizi kontrol edin.', mbError, MB_OK);
+          MsgBox('Requirements could not be downloaded (.NET 8). Please check your internet connection and firewall settings.', mbError, MB_OK);
           Result := False;
         end;
       finally

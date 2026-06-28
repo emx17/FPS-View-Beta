@@ -1,109 +1,65 @@
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
-using System.Management;
-using System.Runtime.InteropServices;
 using System.Linq;
+using LibreHardwareMonitor.Hardware;
 
 namespace FPSOverlay
 {
+    public class AdvancedOverlayData
+    {
+        public string CpuName { get; set; } = "CPU";
+        public float CpuLoad { get; set; }
+        public float CpuFreq { get; set; }
+        public float CpuTemp { get; set; }
+        
+        public string RamName { get; set; } = "RAM";
+        public float RamUsedGB { get; set; }
+        public float RamTotalGB { get; set; }
+        public float RamLoad { get; set; }
+        
+        public string GpuName { get; set; } = "GPU";
+        public float GpuLoad { get; set; }
+        public float GpuFreq { get; set; }
+        public float GpuTemp { get; set; }
+        
+        public string VramName { get; set; } = "VRAM";
+        public float VramUsedGB { get; set; }
+        public float VramTotalGB { get; set; }
+        public float VramLoad { get; set; }
+    }
+
     public class HardwareMonitorManager : IDisposable
     {
         public event Action? OnHardwareDataUpdated;
         
         private FpsMonitor _fpsMonitor;
-        private bool _isAmdGpu = false;
+        public FpsMonitor FpsMonitor => _fpsMonitor;
+        
+        private Computer _computer;
 
         private List<string> _availableGpus = new List<string>();
         public IReadOnlyList<string> AvailableGpus => _availableGpus;
 
-        // --- Dynamic NVAPI Loading (prevents crashes on AMD/Intel systems) ---
-        [DllImport("kernel32.dll", SetLastError = true)]
-        private static extern IntPtr LoadLibrary(string lpFileName);
-
-        [DllImport("kernel32.dll", SetLastError = true)]
-        private static extern IntPtr GetProcAddress(IntPtr hModule, string procName);
-
-        [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
-        private delegate IntPtr NvAPI_QueryInterfaceDelegate(uint id);
-
-        [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
-        private delegate int NvAPI_InitializeDelegate();
-
-        [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
-        private delegate int NvAPI_EnumPhysicalGPUsDelegate(IntPtr[] gpuHandles, out int gpuCount);
-
-        [StructLayout(LayoutKind.Sequential, Pack = 8)]
-        public struct NV_SENSOR
-        {
-            public int controller;
-            public int defaultMinTemp;
-            public int defaultMaxTemp;
-            public int currentTemp;
-            public int target;
-        }
-
-        [StructLayout(LayoutKind.Sequential, Pack = 8)]
-        public struct NV_GPU_THERMAL_SETTINGS
-        {
-            public uint version;
-            public uint count;
-            [MarshalAs(UnmanagedType.ByValArray, SizeConst = 3)]
-            public NV_SENSOR[] sensor;
-        }
-
-        [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
-        private delegate int NvAPI_GPU_GetThermalSettingsDelegate(IntPtr gpuHandle, int sensorIndex, ref NV_GPU_THERMAL_SETTINGS thermalSettings);
-
-        private NvAPI_EnumPhysicalGPUsDelegate? NvAPI_EnumPhysicalGPUs;
-        private NvAPI_GPU_GetThermalSettingsDelegate? NvAPI_GPU_GetThermalSettings;
-
-        private bool _isNvApiInitialized = false;
-        private IntPtr[] _gpuHandles = new IntPtr[64];
-        private int _nvGpuCount = 0;
-        private uint _nvGpuThermalSettingsVer;
-
         public HardwareMonitorManager()
         {
             _fpsMonitor = new FpsMonitor();
-            InitNvApi();
-            GetAvailableGpus();
-        }
-
-        private void InitNvApi()
-        {
+            
+            _computer = new Computer
+            {
+                IsCpuEnabled = true,
+                IsGpuEnabled = true,
+                IsMemoryEnabled = true
+            };
+            
             try
             {
-                // Dynamic loading: if nvapi64.dll is missing (AMD/Intel system) it doesn't throw an error, just returns false
-                string dllName = Environment.Is64BitProcess ? "nvapi64.dll" : "nvapi.dll";
-                IntPtr nvapiModule = LoadLibrary(dllName);
-                if (nvapiModule == IntPtr.Zero) return; // NVIDIA driver not installed, skip gracefully
-
-                IntPtr queryInterfacePtr = GetProcAddress(nvapiModule, "nvapi_QueryInterface");
-                if (queryInterfacePtr == IntPtr.Zero) return;
-
-                var queryInterface = Marshal.GetDelegateForFunctionPointer<NvAPI_QueryInterfaceDelegate>(queryInterfacePtr);
-
-                IntPtr initPtr = queryInterface(0x0150E828);
-                IntPtr enumPtr = queryInterface(0xE5AC921F);
-                IntPtr thermalPtr = queryInterface(0xE3640A56);
-
-                if (initPtr == IntPtr.Zero || enumPtr == IntPtr.Zero || thermalPtr == IntPtr.Zero) return;
-
-                var nvInit = Marshal.GetDelegateForFunctionPointer<NvAPI_InitializeDelegate>(initPtr);
-                NvAPI_EnumPhysicalGPUs = Marshal.GetDelegateForFunctionPointer<NvAPI_EnumPhysicalGPUsDelegate>(enumPtr);
-                NvAPI_GPU_GetThermalSettings = Marshal.GetDelegateForFunctionPointer<NvAPI_GPU_GetThermalSettingsDelegate>(thermalPtr);
-
-                if (nvInit() == 0)
-                {
-                    if (NvAPI_EnumPhysicalGPUs(_gpuHandles, out _nvGpuCount) == 0 && _nvGpuCount > 0)
-                    {
-                        _nvGpuThermalSettingsVer = (uint)Marshal.SizeOf(typeof(NV_GPU_THERMAL_SETTINGS)) | (2 << 16); 
-                        _isNvApiInitialized = true;
-                    }
-                }
+                _computer.Open();
+                GetAvailableGpus();
             }
-            catch { }
+            catch
+            {
+                // In case Open() fails
+            }
         }
 
         private void GetAvailableGpus()
@@ -111,17 +67,13 @@ namespace FPSOverlay
             _availableGpus.Clear();
             try
             {
-                using (var searcher = new ManagementObjectSearcher("select Name from Win32_VideoController"))
+                foreach (var hardware in _computer.Hardware)
                 {
-                    foreach (ManagementObject obj in searcher.Get())
+                    if (hardware.HardwareType == HardwareType.GpuNvidia || 
+                        hardware.HardwareType == HardwareType.GpuAmd ||
+                        hardware.HardwareType == HardwareType.GpuIntel)
                     {
-                        string name = obj["Name"]?.ToString() ?? "Bilinmeyen GPU / Unknown GPU";
-                        _availableGpus.Add(name);
-
-                        if (name.Contains("AMD", StringComparison.OrdinalIgnoreCase) || name.Contains("Radeon", StringComparison.OrdinalIgnoreCase))
-                        {
-                            _isAmdGpu = true;
-                        }
+                        _availableGpus.Add(hardware.Name);
                     }
                 }
             }
@@ -135,100 +87,136 @@ namespace FPSOverlay
         {
             try
             {
-                using (var searcher = new ManagementObjectSearcher(@"root\WMI", "SELECT * FROM MSAcpi_ThermalZoneTemperature"))
+                foreach (var hardware in _computer.Hardware)
                 {
-                    foreach (ManagementObject obj in searcher.Get())
+                    if (hardware.HardwareType == HardwareType.Cpu)
                     {
-                        uint temp = Convert.ToUInt32(obj["CurrentTemperature"]);
-                        return (int)((temp - 2732) / 10.0);
+                        hardware.Update();
+                        
+                        var packageSensor = hardware.Sensors.FirstOrDefault(s => s.SensorType == SensorType.Temperature && s.Name.Contains("Package"));
+                        if (packageSensor?.Value != null)
+                        {
+                            return (int)packageSensor.Value.Value;
+                        }
+
+                        var coreSensors = hardware.Sensors.Where(s => s.SensorType == SensorType.Temperature && s.Name.Contains("Core"));
+                        if (coreSensors.Any() && coreSensors.Max(s => s.Value) != null)
+                        {
+                            var maxVal = coreSensors.Max(s => s.Value);
+                            if (maxVal.HasValue)
+                            {
+                                return (int)maxVal.Value;
+                            }
+                        }
+
+                        var anyTempSensor = hardware.Sensors.FirstOrDefault(s => s.SensorType == SensorType.Temperature);
+                        if (anyTempSensor?.Value != null)
+                        {
+                            return (int)anyTempSensor.Value.Value;
+                        }
                     }
                 }
             }
             catch { }
-            return 0; // Returns 0 instead of N/A if lacking permissions, so overlay displays nicely.
+            return 0; 
         }
 
         public int GetGpuTemperature(string selectedGpuName)
         {
-            // 1. NVIDIA NVAPI
-            if (string.IsNullOrEmpty(selectedGpuName) || selectedGpuName.Contains("NVIDIA", StringComparison.OrdinalIgnoreCase))
+            try
             {
-                if (_isNvApiInitialized && _nvGpuCount > 0 && NvAPI_GPU_GetThermalSettings != null)
+                foreach (var hardware in _computer.Hardware)
                 {
-                    try
+                    if (hardware.HardwareType == HardwareType.GpuNvidia || 
+                        hardware.HardwareType == HardwareType.GpuAmd ||
+                        hardware.HardwareType == HardwareType.GpuIntel)
                     {
-                        var settings = new NV_GPU_THERMAL_SETTINGS();
-                        settings.version = _nvGpuThermalSettingsVer;
-                        settings.sensor = new NV_SENSOR[3];
+                        if (string.IsNullOrEmpty(selectedGpuName) || 
+                            selectedGpuName == "Bilinmeyen GPU / Unknown GPU" ||
+                            hardware.Name.Contains(selectedGpuName, StringComparison.OrdinalIgnoreCase) ||
+                            selectedGpuName.Contains(hardware.Name, StringComparison.OrdinalIgnoreCase))
+                        {
+                            hardware.Update();
+                            
+                            var coreSensor = hardware.Sensors.FirstOrDefault(s => s.SensorType == SensorType.Temperature && s.Name.Contains("Core"));
+                            if (coreSensor?.Value != null)
+                            {
+                                return (int)coreSensor.Value.Value;
+                            }
 
-                        if (NvAPI_GPU_GetThermalSettings(_gpuHandles[0], 15, ref settings) == 0)
-                        {
-                            return settings.sensor[0].currentTemp;
-                        }
-                        else
-                        {
-                            settings.version = (uint)Marshal.SizeOf(typeof(NV_GPU_THERMAL_SETTINGS)) | (1 << 16);
-                            if (NvAPI_GPU_GetThermalSettings(_gpuHandles[0], 15, ref settings) == 0)
-                                return settings.sensor[0].currentTemp;
+                            var anyTempSensor = hardware.Sensors.FirstOrDefault(s => s.SensorType == SensorType.Temperature);
+                            if (anyTempSensor?.Value != null)
+                            {
+                                return (int)anyTempSensor.Value.Value;
+                            }
                         }
                     }
-                    catch { }
                 }
             }
+            catch { }
+            return 0; 
+        }
 
-            bool isAmd = _isAmdGpu || selectedGpuName.Contains("AMD", StringComparison.OrdinalIgnoreCase) || selectedGpuName.Contains("Radeon", StringComparison.OrdinalIgnoreCase);
-
-            // 2. AMD Graphics Hardware Fallback
-            if (isAmd)
+        public string GetRamUsage()
+        {
+            try
             {
-                try
+                foreach (var hardware in _computer.Hardware)
                 {
-                    var amdCategories = new string[] { "AMD Link", "Graphics Hardware" };
-                    foreach (var catName in amdCategories)
+                    if (hardware.HardwareType == HardwareType.Memory)
                     {
-                        if (PerformanceCounterCategory.Exists(catName))
+                        hardware.Update();
+                        var usedMemSensor = hardware.Sensors.FirstOrDefault(s => s.SensorType == SensorType.Data && s.Name.Contains("Memory Used"));
+                        if (usedMemSensor?.Value != null)
                         {
-                            var cat = new PerformanceCounterCategory(catName);
-                            var instances = cat.GetInstanceNames();
-                            foreach (var inst in instances)
+                            return $"{usedMemSensor.Value.Value:F1} GB";
+                        }
+                    }
+                }
+            }
+            catch { }
+            return "N/A";
+        }
+
+        public string GetVramUsage(string selectedGpuName)
+        {
+            try
+            {
+                foreach (var hardware in _computer.Hardware)
+                {
+                    if (hardware.HardwareType == HardwareType.GpuNvidia || 
+                        hardware.HardwareType == HardwareType.GpuAmd ||
+                        hardware.HardwareType == HardwareType.GpuIntel)
+                    {
+                        if (string.IsNullOrEmpty(selectedGpuName) || 
+                            selectedGpuName == "Bilinmeyen GPU / Unknown GPU" ||
+                            hardware.Name.Contains(selectedGpuName, StringComparison.OrdinalIgnoreCase) ||
+                            selectedGpuName.Contains(hardware.Name, StringComparison.OrdinalIgnoreCase))
+                        {
+                            hardware.Update();
+                            
+                            var vramSensor = hardware.Sensors.FirstOrDefault(s => s.SensorType == SensorType.SmallData && s.Name.Contains("Memory Used"));
+                            if (vramSensor == null)
+                                vramSensor = hardware.Sensors.FirstOrDefault(s => s.SensorType == SensorType.Data && s.Name.Contains("Memory Used"));
+
+                            if (vramSensor?.Value != null)
                             {
-                                if (inst.Contains("Temperature", StringComparison.OrdinalIgnoreCase))
+                                float val = vramSensor.Value.Value;
+                                if (vramSensor.SensorType == SensorType.SmallData) 
                                 {
-                                    using (var pc = new PerformanceCounter(catName, "Temperature", inst))
-                                    {
-                                        return (int)pc.NextValue();
-                                    }
+                                    return $"{(val / 1024f):F1} GB";
+                                }
+                                else 
+                                {
+                                    return $"{val:F1} GB";
                                 }
                             }
                         }
                     }
                 }
-                catch { }
-            }
-
-            // 3. Intel / Generic Thermal Zone Fallback
-            try
-            {
-                if (PerformanceCounterCategory.Exists("Thermal Zone Information"))
-                {
-                    var thermalCat = new PerformanceCounterCategory("Thermal Zone Information");
-                    var instances = thermalCat.GetInstanceNames();
-                    foreach (var inst in instances)
-                    {
-                        if (inst.Contains("GPU", StringComparison.OrdinalIgnoreCase))
-                        {
-                            using (var pc = new PerformanceCounter("Thermal Zone Information", "Temperature", inst))
-                            {
-                                float val = pc.NextValue();
-                                return (int)(val - 273.15);
-                            }
-                        }
-                    }
-                }
             }
             catch { }
-
-            return 0; 
+            return "N/A";
         }
 
         public int GetCurrentFps()
@@ -239,8 +227,6 @@ namespace FPSOverlay
 
         public string FormatOverlayText(OverlayConfig config)
         {
-            string formattedText = "[{gpu_name}]  |  FPS: {fps}  |  CPU: {cpu_temp}°C  |  GPU: {gpu_temp}°C";
-
             string defaultGpuName = "Unknown GPU";
             string adminReq = "ADMIN REQUIRED!";
             string lang = config.Language ?? "EN";
@@ -256,45 +242,131 @@ namespace FPSOverlay
             }
 
             string gpuName = string.IsNullOrEmpty(config.SelectedGpuName) ? defaultGpuName : config.SelectedGpuName;
-
-            if (!config.ShowGpuName)
-            {
-                formattedText = formattedText.Replace("[{gpu_name}]  |  ", "");
-                formattedText = formattedText.Replace("[{gpu_name}]", "");
-            }
-
             int fps = GetCurrentFps();
             string fpsText = fps == -1 ? adminReq : fps.ToString();
-            formattedText = formattedText.Replace("{fps}", fpsText);
-            formattedText = formattedText.Replace("{gpu_name}", gpuName);
+
+            List<string> topParts = new List<string>();
+            List<string> bottomParts = new List<string>();
+
+            if (config.ShowGpuName) topParts.Add($"[{gpuName}]");
+            topParts.Add($"FPS: {fpsText}");
 
             if (config.ShowCpuTemp)
             {
                 int cpuTemp = GetCpuTemperature();
-                string tempStr = cpuTemp > 0 ? cpuTemp.ToString() : "N/A";
-                formattedText = formattedText.Replace("{cpu_temp}", tempStr);
-            }
-            else
-            {
-                formattedText = formattedText.Replace("  |  CPU: {cpu_temp}°C", "");
-                formattedText = formattedText.Replace("CPU: {cpu_temp}°C  |  ", "");
-                formattedText = formattedText.Replace("CPU: {cpu_temp}°C", "");
+                bottomParts.Add($"CPU: {(cpuTemp > 0 ? cpuTemp.ToString() : "N/A")}°C");
             }
 
             if (config.ShowGpuTemp)
             {
                 int gpuTemp = GetGpuTemperature(gpuName);
-                string tempStr = gpuTemp > 0 ? gpuTemp.ToString() : "N/A";
-                formattedText = formattedText.Replace("{gpu_temp}", tempStr);
+                bottomParts.Add($"GPU: {(gpuTemp > 0 ? gpuTemp.ToString() : "N/A")}°C");
+            }
+
+            if (config.ShowVramUsage) bottomParts.Add($"VRAM: {GetVramUsage(gpuName)}");
+            if (config.ShowRamUsage) bottomParts.Add($"RAM: {GetRamUsage()}");
+
+            if (config.OverlayProfileIndex == 2)
+            {
+                string topStr = string.Join("  |  ", topParts);
+                string bottomStr = string.Join("  |  ", bottomParts);
+                
+                if (string.IsNullOrEmpty(bottomStr)) return topStr;
+                if (string.IsNullOrEmpty(topStr)) return bottomStr;
+                
+                return $"{topStr}\n{bottomStr}";
             }
             else
             {
-                formattedText = formattedText.Replace("  |  GPU: {gpu_temp}°C", "");
-                formattedText = formattedText.Replace("GPU: {gpu_temp}°C  |  ", "");
-                formattedText = formattedText.Replace("GPU: {gpu_temp}°C", "");
+                List<string> allParts = new List<string>(topParts);
+                allParts.AddRange(bottomParts);
+                return string.Join("  |  ", allParts);
             }
+        }
 
-            return formattedText.Trim();
+        public AdvancedOverlayData GetAdvancedData(string selectedGpuName)
+        {
+            var data = new AdvancedOverlayData();
+            
+            try
+            {
+                foreach (var hardware in _computer.Hardware)
+                {
+                    hardware.Update();
+
+                    if (hardware.HardwareType == HardwareType.Cpu)
+                    {
+                        data.CpuName = hardware.Name;
+                        var load = hardware.Sensors.FirstOrDefault(s => s.SensorType == SensorType.Load && s.Name.Contains("Total"));
+                        if (load?.Value != null) data.CpuLoad = load.Value.Value;
+
+                        var clock = hardware.Sensors.FirstOrDefault(s => s.SensorType == SensorType.Clock);
+                        if (clock?.Value != null) data.CpuFreq = clock.Value.Value;
+
+                        var temp = hardware.Sensors.FirstOrDefault(s => s.SensorType == SensorType.Temperature && (s.Name.Contains("Package") || s.Name.Contains("Core (Tctl/Tdie)")));
+                        if (temp == null) temp = hardware.Sensors.FirstOrDefault(s => s.SensorType == SensorType.Temperature);
+                        if (temp?.Value != null) data.CpuTemp = temp.Value.Value;
+                    }
+                    else if (hardware.HardwareType == HardwareType.Memory)
+                    {
+                        var used = hardware.Sensors.FirstOrDefault(s => s.SensorType == SensorType.Data && s.Name.Contains("Memory Used"));
+                        var avail = hardware.Sensors.FirstOrDefault(s => s.SensorType == SensorType.Data && s.Name.Contains("Memory Available"));
+                        var load = hardware.Sensors.FirstOrDefault(s => s.SensorType == SensorType.Load && s.Name.Contains("Memory"));
+                        
+                        if (used?.Value != null) data.RamUsedGB = used.Value.Value;
+                        if (avail?.Value != null) data.RamTotalGB = data.RamUsedGB + avail.Value.Value;
+                        if (load?.Value != null) data.RamLoad = load.Value.Value;
+                        else if (data.RamTotalGB > 0) data.RamLoad = (data.RamUsedGB / data.RamTotalGB) * 100f;
+                    }
+                    else if (hardware.HardwareType == HardwareType.GpuNvidia || 
+                             hardware.HardwareType == HardwareType.GpuAmd ||
+                             hardware.HardwareType == HardwareType.GpuIntel)
+                    {
+                        if (string.IsNullOrEmpty(selectedGpuName) || 
+                            selectedGpuName == "Bilinmeyen GPU / Unknown GPU" ||
+                            hardware.Name.Contains(selectedGpuName, StringComparison.OrdinalIgnoreCase) ||
+                            selectedGpuName.Contains(hardware.Name, StringComparison.OrdinalIgnoreCase))
+                        {
+                            data.GpuName = hardware.Name;
+                            
+                            var load = hardware.Sensors.FirstOrDefault(s => s.SensorType == SensorType.Load && s.Name.Contains("Core"));
+                            if (load?.Value != null) data.GpuLoad = load.Value.Value;
+
+                            var clock = hardware.Sensors.FirstOrDefault(s => s.SensorType == SensorType.Clock && s.Name.Contains("Core"));
+                            if (clock?.Value != null) data.GpuFreq = clock.Value.Value;
+
+                            var temp = hardware.Sensors.FirstOrDefault(s => s.SensorType == SensorType.Temperature && s.Name.Contains("Core"));
+                            if (temp?.Value != null) data.GpuTemp = temp.Value.Value;
+
+                            var vramUsed = hardware.Sensors.FirstOrDefault(s => s.SensorType == SensorType.SmallData && s.Name.Contains("Memory Used"));
+                            var vramTotal = hardware.Sensors.FirstOrDefault(s => s.SensorType == SensorType.SmallData && s.Name.Contains("Memory Total"));
+                            
+                            if (vramUsed == null) vramUsed = hardware.Sensors.FirstOrDefault(s => s.SensorType == SensorType.Data && s.Name.Contains("Memory Used"));
+                            if (vramTotal == null) vramTotal = hardware.Sensors.FirstOrDefault(s => s.SensorType == SensorType.Data && s.Name.Contains("Memory Total"));
+
+                            if (vramUsed?.Value != null)
+                            {
+                                float val = vramUsed.Value.Value;
+                                data.VramUsedGB = vramUsed.SensorType == SensorType.SmallData ? val / 1024f : val;
+                            }
+                            
+                            if (vramTotal?.Value != null)
+                            {
+                                float val = vramTotal.Value.Value;
+                                data.VramTotalGB = vramTotal.SensorType == SensorType.SmallData ? val / 1024f : val;
+                            }
+
+                            if (data.VramTotalGB > 0)
+                            {
+                                data.VramLoad = (data.VramUsedGB / data.VramTotalGB) * 100f;
+                            }
+                        }
+                    }
+                }
+            }
+            catch { }
+
+            return data;
         }
 
         public void TriggerUpdate()
@@ -305,7 +377,12 @@ namespace FPSOverlay
         public void Dispose()
         {
             _fpsMonitor?.Dispose();
+            
+            try
+            {
+                _computer?.Close();
+            }
+            catch { }
         }
     }
 }
-

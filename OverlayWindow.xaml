@@ -1,4 +1,4 @@
-﻿<Window x:Class="FPSOverlay.OverlayWindow"
+<Window x:Class="FPSOverlay.OverlayWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Title="emx17_FPSViewer" SizeToContent="WidthAndHeight"
@@ -7,20 +7,102 @@
         Left="0" Top="0"
         FontFamily="Segoe UI Variable Display, Segoe UI, sans-serif">
     <Grid Background="Transparent">
-        <!-- Saf metin â€” arka plan yok, kutu yok, havada asılı duruyor -->
-        <TextBlock x:Name="OverlayText"
-                   Text="Başlatılıyor..."
-                   Foreground="#00E68A"
-                   FontSize="20"
-                   FontWeight="Bold"
-                   HorizontalAlignment="Center"
-                   VerticalAlignment="Center"
-                   Margin="10">
-            <!-- Siyah dış hat â€” bembeyaz sahnelerde jilet gibi okunabilirlik (Afterburner stili) -->
-            <TextBlock.Effect>
-                <DropShadowEffect Color="Black" BlurRadius="5" ShadowDepth="1" Opacity="1.0" Direction="315"/>
-            </TextBlock.Effect>
-        </TextBlock>
+        <!-- Container 1: Classic, Gamer Panel, Steam Deck Styles -->
+        <Border x:Name="OverlayBorder" Background="Transparent" CornerRadius="0" Padding="0" Visibility="Visible">
+            <TextBlock x:Name="OverlayText"
+                       Text="Başlatılıyor..."
+                       Foreground="#00E68A"
+                       FontSize="20"
+                       FontWeight="Bold"
+                       HorizontalAlignment="Center"
+                       VerticalAlignment="Center"
+                       Margin="10">
+                <TextBlock.Effect>
+                    <DropShadowEffect Color="Black" BlurRadius="5" ShadowDepth="1" Opacity="1.0" Direction="315"/>
+                </TextBlock.Effect>
+            </TextBlock>
+        </Border>
+
+        <!-- Container 2: Advanced Performance HUD (MSI Afterburner Style) -->
+        <Border x:Name="AdvancedHudBorder" Background="#CC1A1A1A" CornerRadius="8" Padding="16,14" Visibility="Collapsed" Width="360">
+            <StackPanel x:Name="AdvancedHudStack">
+                
+                <!-- BLOCK 1: FPS & Frametime -->
+                <Grid Margin="0,0,0,10">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+                    
+                    <StackPanel Grid.Column="0">
+                        <TextBlock Text="D3D11" Foreground="#AAAAAA" FontSize="12" FontWeight="Bold"/>
+                        <TextBlock x:Name="AdvFpsText" Text="144" Foreground="#00E68A" FontSize="42" FontWeight="Black" Margin="0,-5,0,0"/>
+                        <StackPanel Orientation="Horizontal" Margin="0,-5,0,0">
+                            <TextBlock Text="1% Low: " Foreground="#888888" FontSize="11"/>
+                            <TextBlock x:Name="AdvOnePercentLowText" Text="98 FPS" Foreground="#CCCCCC" FontSize="11" FontWeight="Bold"/>
+                        </StackPanel>
+                    </StackPanel>
+
+                    <StackPanel Grid.Column="1" VerticalAlignment="Bottom" HorizontalAlignment="Right">
+                        <TextBlock x:Name="AdvFrametimeText" Text="6.9 ms" Foreground="#00E68A" FontSize="14" FontWeight="Bold" HorizontalAlignment="Right"/>
+                        <Border Background="#333333" Width="100" Height="25" Margin="0,4,0,0">
+                            <Polyline x:Name="AdvFrametimeGraph" Stroke="#00E68A" StrokeThickness="1" Stretch="Fill"/>
+                        </Border>
+                    </StackPanel>
+                </Grid>
+
+                <!-- BLOCK 2: CPU -->
+                <StackPanel x:Name="AdvCpuBlock" Margin="0,5,0,10">
+                    <Grid>
+                        <TextBlock x:Name="AdvCpuName" Text="CPU" Foreground="#FFFFFF" FontSize="12" FontWeight="Bold"/>
+                        <TextBlock x:Name="AdvCpuLoad" Text="0%" Foreground="#FFFFFF" FontSize="12" FontWeight="Bold" HorizontalAlignment="Right"/>
+                    </Grid>
+                    <Grid Margin="0,2,0,4">
+                        <TextBlock x:Name="AdvCpuFreq" Text="0 MHz" Foreground="#AAAAAA" FontSize="11"/>
+                        <TextBlock x:Name="AdvCpuTemp" Text="0°C" Foreground="#AAAAAA" FontSize="11" HorizontalAlignment="Right"/>
+                    </Grid>
+                    <ProgressBar x:Name="AdvCpuProgress" Minimum="0" Maximum="100" Value="0" Height="4" Foreground="#00E68A" Background="#333333" BorderThickness="0"/>
+                </StackPanel>
+
+                <!-- BLOCK 3: RAM -->
+                <StackPanel x:Name="AdvRamBlock" Margin="0,0,0,10">
+                    <Grid>
+                        <TextBlock x:Name="AdvRamName" Text="RAM" Foreground="#FFFFFF" FontSize="12" FontWeight="Bold"/>
+                        <TextBlock x:Name="AdvRamLoad" Text="0%" Foreground="#FFFFFF" FontSize="12" FontWeight="Bold" HorizontalAlignment="Right"/>
+                    </Grid>
+                    <Grid Margin="0,2,0,4">
+                        <TextBlock x:Name="AdvRamUsage" Text="0.0 / 0.0 GB" Foreground="#AAAAAA" FontSize="11"/>
+                    </Grid>
+                    <ProgressBar x:Name="AdvRamProgress" Minimum="0" Maximum="100" Value="0" Height="4" Foreground="#00E68A" Background="#333333" BorderThickness="0"/>
+                </StackPanel>
+
+                <!-- BLOCK 4: GPU -->
+                <StackPanel x:Name="AdvGpuBlock" Margin="0,0,0,10">
+                    <Grid>
+                        <TextBlock x:Name="AdvGpuName" Text="GPU" Foreground="#FFFFFF" FontSize="12" FontWeight="Bold"/>
+                        <TextBlock x:Name="AdvGpuLoad" Text="0%" Foreground="#FFFFFF" FontSize="12" FontWeight="Bold" HorizontalAlignment="Right"/>
+                    </Grid>
+                    <Grid Margin="0,2,0,4">
+                        <TextBlock x:Name="AdvGpuFreq" Text="0 MHz" Foreground="#AAAAAA" FontSize="11"/>
+                        <TextBlock x:Name="AdvGpuTemp" Text="0°C" Foreground="#AAAAAA" FontSize="11" HorizontalAlignment="Right"/>
+                    </Grid>
+                    <ProgressBar x:Name="AdvGpuProgress" Minimum="0" Maximum="100" Value="0" Height="4" Foreground="#E31E24" Background="#333333" BorderThickness="0"/>
+                </StackPanel>
+
+                <!-- BLOCK 5: VRAM -->
+                <StackPanel x:Name="AdvVramBlock" Margin="0,0,0,0">
+                    <Grid>
+                        <TextBlock x:Name="AdvVramName" Text="VRAM" Foreground="#FFFFFF" FontSize="12" FontWeight="Bold"/>
+                        <TextBlock x:Name="AdvVramLoad" Text="0%" Foreground="#FFFFFF" FontSize="12" FontWeight="Bold" HorizontalAlignment="Right"/>
+                    </Grid>
+                    <Grid Margin="0,2,0,4">
+                        <TextBlock x:Name="AdvVramUsage" Text="0.0 / 0.0 GB" Foreground="#AAAAAA" FontSize="11"/>
+                    </Grid>
+                    <ProgressBar x:Name="AdvVramProgress" Minimum="0" Maximum="100" Value="0" Height="4" Foreground="#E31E24" Background="#333333" BorderThickness="0"/>
+                </StackPanel>
+
+            </StackPanel>
+        </Border>
     </Grid>
 </Window>
 

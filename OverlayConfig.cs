@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.IO;
 using System.Text.Json;
 
@@ -17,9 +17,13 @@ namespace FPSOverlay
         public bool ShowGpuName { get; set; } = true;
         public bool ShowCpuTemp { get; set; } = true;
         public bool ShowGpuTemp { get; set; } = true;
+        public bool ShowRamUsage { get; set; } = true;
+        public bool ShowVramUsage { get; set; } = true;
+        public int OverlayProfileIndex { get; set; } = 0;
         public int FontSize { get; set; } = 20;
         public string FontFamily { get; set; } = "Orbitron, Rajdhani, Segoe UI Semibold, Consolas";
         public string TextColorHex { get; set; } = "#E31E24";
+        public System.Collections.Generic.List<string> CustomColors { get; set; } = new System.Collections.Generic.List<string>();
         
         public OverlayPositionPreset PositionPreset { get; set; } = OverlayPositionPreset.TopRight;
         public double PositionPadding { get; set; } = 25;

@@ -1,0 +1,123 @@
+<Window x:Class="FPSOverlay.ColorPickerWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Color" Height="500" Width="400"
+        WindowStyle="None" AllowsTransparency="True" Background="Transparent"
+        WindowStartupLocation="CenterOwner" ResizeMode="NoResize"
+        FontFamily="Segoe UI, sans-serif">
+    <Border Background="#151515" CornerRadius="8" BorderBrush="#333" BorderThickness="1">
+        <Grid Margin="20">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/> <!-- Title -->
+                <RowDefinition Height="*"/>    <!-- Picker Area -->
+                <RowDefinition Height="Auto"/> <!-- Standard Colors -->
+                <RowDefinition Height="Auto"/> <!-- Custom Colors -->
+                <RowDefinition Height="Auto"/> <!-- Buttons -->
+            </Grid.RowDefinitions>
+
+            <!-- Title -->
+            <TextBlock x:Name="LblTitle" Text="Color" Foreground="#FFF" FontSize="14" FontWeight="SemiBold" Margin="0,0,0,20"/>
+
+            <!-- Picker Area -->
+            <Grid Grid.Row="1" Margin="0,0,0,20">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="220"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+
+                <!-- Color Wheel & Square -->
+                <Grid x:Name="PickerGrid" Width="200" Height="200" HorizontalAlignment="Left" VerticalAlignment="Top" Background="Transparent"
+                      MouseLeftButtonDown="PickerGrid_MouseDown" MouseMove="PickerGrid_MouseMove" MouseLeftButtonUp="PickerGrid_MouseUp">
+                    <Image x:Name="ImgHueRing" Width="200" Height="200" IsHitTestVisible="False"/>
+                    
+                    <Border Width="110" Height="110" HorizontalAlignment="Center" VerticalAlignment="Center" BorderBrush="#444" BorderThickness="1" IsHitTestVisible="False">
+                        <Image x:Name="ImgSvSquare" Width="110" Height="110"/>
+                    </Border>
+
+                    <!-- Indicators -->
+                    <Canvas x:Name="OverlayCanvas" Width="200" Height="200" IsHitTestVisible="False">
+                        <!-- Hue Indicator -->
+                        <Ellipse x:Name="HueIndicator" Width="14" Height="14" Stroke="#FFF" StrokeThickness="2" Margin="-7,-7,0,0"/>
+                        
+                        <!-- SV Indicator -->
+                        <Ellipse x:Name="SvIndicator" Width="10" Height="10" Stroke="#FFF" StrokeThickness="1.5" Margin="-5,-5,0,0"/>
+                    </Canvas>
+                </Grid>
+
+                <!-- Right Side: Preview & RGB -->
+                <StackPanel Grid.Column="1" Margin="10,0,0,0">
+                    <StackPanel Orientation="Horizontal" Margin="0,0,0,15">
+                        <Border x:Name="ColorPreview" Width="80" Height="30" CornerRadius="2" BorderBrush="#555" BorderThickness="1" Background="#FF0000"/>
+                        <Button x:Name="BtnAddCustom" Content="+" Width="30" Height="30" Margin="10,0,0,0" FontSize="18" Foreground="#888" Background="Transparent" BorderThickness="0" Click="BtnAddCustom_Click" Cursor="Hand"/>
+                    </StackPanel>
+
+                    <Grid Margin="0,0,0,10">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="20"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Text="R" Foreground="#CCC" VerticalAlignment="Center"/>
+                        <TextBox x:Name="TxtR" Grid.Column="1" Height="24" Background="#0A0A0A" Foreground="#FFF" BorderBrush="#333" VerticalContentAlignment="Center" Padding="5,0" TextChanged="RgbTextBox_TextChanged"/>
+                    </Grid>
+                    
+                    <Grid Margin="0,0,0,10">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="20"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Text="G" Foreground="#CCC" VerticalAlignment="Center"/>
+                        <TextBox x:Name="TxtG" Grid.Column="1" Height="24" Background="#0A0A0A" Foreground="#FFF" BorderBrush="#333" VerticalContentAlignment="Center" Padding="5,0" TextChanged="RgbTextBox_TextChanged"/>
+                    </Grid>
+                    
+                    <Grid Margin="0,0,0,10">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="20"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Text="B" Foreground="#CCC" VerticalAlignment="Center"/>
+                        <TextBox x:Name="TxtB" Grid.Column="1" Height="24" Background="#0A0A0A" Foreground="#FFF" BorderBrush="#333" VerticalContentAlignment="Center" Padding="5,0" TextChanged="RgbTextBox_TextChanged"/>
+                    </Grid>
+                </StackPanel>
+            </Grid>
+
+            <!-- Standard Colors -->
+            <StackPanel Grid.Row="2" Margin="0,0,0,15">
+                <TextBlock x:Name="LblStandardColors" Text="Standard colors" Foreground="#FFF" FontSize="12" Margin="0,0,0,8"/>
+                <StackPanel Orientation="Horizontal">
+                    <Border Background="#FFFFFF" Tag="#FFFFFF" Width="24" Height="24" CornerRadius="2" Margin="0,0,8,0" MouseLeftButtonDown="StandardColor_Click" Cursor="Hand" BorderBrush="#444" BorderThickness="1"/>
+                    <Border Background="#FF0000" Tag="#FF0000" Width="24" Height="24" CornerRadius="2" Margin="0,0,8,0" MouseLeftButtonDown="StandardColor_Click" Cursor="Hand" BorderBrush="#444" BorderThickness="1"/>
+                    <Border Background="#FF8800" Tag="#FF8800" Width="24" Height="24" CornerRadius="2" Margin="0,0,8,0" MouseLeftButtonDown="StandardColor_Click" Cursor="Hand" BorderBrush="#444" BorderThickness="1"/>
+                    <Border Background="#FFFF00" Tag="#FFFF00" Width="24" Height="24" CornerRadius="2" Margin="0,0,8,0" MouseLeftButtonDown="StandardColor_Click" Cursor="Hand" BorderBrush="#444" BorderThickness="1"/>
+                    <Border Background="#00FF00" Tag="#00FF00" Width="24" Height="24" CornerRadius="2" Margin="0,0,8,0" MouseLeftButtonDown="StandardColor_Click" Cursor="Hand" BorderBrush="#444" BorderThickness="1"/>
+                    <Border Background="#00FFFF" Tag="#00FFFF" Width="24" Height="24" CornerRadius="2" Margin="0,0,8,0" MouseLeftButtonDown="StandardColor_Click" Cursor="Hand" BorderBrush="#444" BorderThickness="1"/>
+                    <Border Background="#0000FF" Tag="#0000FF" Width="24" Height="24" CornerRadius="2" Margin="0,0,8,0" MouseLeftButtonDown="StandardColor_Click" Cursor="Hand" BorderBrush="#444" BorderThickness="1"/>
+                    <Border Background="#FF00FF" Tag="#FF00FF" Width="24" Height="24" CornerRadius="2" Margin="0,0,8,0" MouseLeftButtonDown="StandardColor_Click" Cursor="Hand" BorderBrush="#444" BorderThickness="1"/>
+                </StackPanel>
+            </StackPanel>
+
+            <!-- Custom Colors -->
+            <StackPanel Grid.Row="3" Margin="0,0,0,20">
+                <Grid Margin="0,0,0,8">
+                    <TextBlock x:Name="LblCustomColors" Text="Custom colors" Foreground="#FFF" FontSize="12"/>
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                        <Button x:Name="BtnDeleteCustom" Content="&#xE74D;" FontFamily="Segoe MDL2 Assets" Background="Transparent" Foreground="#888" BorderThickness="0" FontSize="12" Margin="10,0,0,0" Cursor="Hand" Click="BtnDeleteCustom_Click"/>
+                    </StackPanel>
+                </Grid>
+                
+                <StackPanel x:Name="CustomColorContainer" Orientation="Horizontal">
+                    <!-- Dynamic populated in code behind -->
+                </StackPanel>
+            </StackPanel>
+
+            <!-- Bottom Buttons -->
+            <Grid Grid.Row="4">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+                <Button x:Name="BtnOk" Content="OK" Background="#222" Foreground="#FFF" BorderBrush="#444" BorderThickness="1" Height="30" Margin="0,0,5,0" Cursor="Hand" Click="BtnOk_Click"/>
+                <Button x:Name="BtnCancel" Grid.Column="1" Content="Cancel" Background="#222" Foreground="#FFF" BorderBrush="#444" BorderThickness="1" Height="30" Margin="5,0,0,0" Cursor="Hand" Click="BtnCancel_Click"/>
+            </Grid>
+        </Grid>
+    </Border>
+</Window>

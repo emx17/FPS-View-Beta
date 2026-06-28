@@ -1,7 +1,7 @@
 <Window x:Class="FPSOverlay.ControlPanelWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="emx17 FPS Viewer Beta" Height="500" Width="850"
+        Title="emx17 FPS Viewer Beta" Height="560" Width="850"
         WindowStyle="None" AllowsTransparency="True" Background="Transparent"
         WindowStartupLocation="CenterScreen" ResizeMode="NoResize"
         FontFamily="Segoe UI, sans-serif">
@@ -285,6 +285,19 @@
                         </StackPanel>
                     </Border>
 
+                    <!-- PROFILE -->
+                    <Border Style="{StaticResource SectionCard}">
+                        <StackPanel>
+                            <TextBlock x:Name="LblProfile" Text="OVERLAY PROFİLİ / THEME" Style="{StaticResource SectionHeader}"/>
+                            <ComboBox x:Name="CmbProfile" Height="26" FontSize="12" SelectionChanged="InteractiveElement_Changed">
+                                <ComboBoxItem Content="Classic Minimalist" Tag="0"/>
+                                <ComboBoxItem Content="Gamer Panel" Tag="1"/>
+                                <ComboBoxItem Content="Steam Deck Style" Tag="2"/>
+                                <ComboBoxItem Content="Advanced Performance HUD" Tag="3"/>
+                            </ComboBox>
+                        </StackPanel>
+                    </Border>
+
                     <!-- APPEARANCE -->
                     <Border Style="{StaticResource SectionCard}">
                         <StackPanel>
@@ -297,13 +310,7 @@
                                     <ColumnDefinition Width="Auto"/>
                                 </Grid.ColumnDefinitions>
                                 <StackPanel Orientation="Horizontal" Grid.Column="0" VerticalAlignment="Center">
-                                    <Border Background="#FF0033" Tag="#FF0033" Style="{StaticResource ColorSwatch}" MouseLeftButtonDown="ColorPalette_Click"/>
-                                    <Border Background="#00E68A" Tag="#00E68A" Style="{StaticResource ColorSwatch}" MouseLeftButtonDown="ColorPalette_Click"/>
-                                    <Border Background="#00A2FF" Tag="#00A2FF" Style="{StaticResource ColorSwatch}" MouseLeftButtonDown="ColorPalette_Click"/>
-                                    <Border Background="#FFB300" Tag="#FFB300" Style="{StaticResource ColorSwatch}" MouseLeftButtonDown="ColorPalette_Click"/>
-                                    <Border Background="#FFFFFF" Tag="#FFFFFF" Style="{StaticResource ColorSwatch}" MouseLeftButtonDown="ColorPalette_Click"/>
-                                    <Border Background="#AA44FF" Tag="#AA44FF" Style="{StaticResource ColorSwatch}" MouseLeftButtonDown="ColorPalette_Click"/>
-                                    <Border Background="#FF6B9D" Tag="#FF6B9D" Style="{StaticResource ColorSwatch}" MouseLeftButtonDown="ColorPalette_Click"/>
+                                    <Button x:Name="BtnCustomColor" Content="Özel Renk Seç / Custom Color" Background="#151515" Foreground="#CCC" BorderBrush="#333" BorderThickness="1" Height="30" Padding="15,0" Cursor="Hand" Click="BtnCustomColor_Click"/>
                                 </StackPanel>
                                 <Border x:Name="ColorPreview" Grid.Column="1" Width="32" Height="32" CornerRadius="2" Background="#00E68A" BorderBrush="#333333" BorderThickness="1" Margin="10,0,0,0"/>
                             </Grid>
@@ -365,7 +372,9 @@
                             <TextBlock x:Name="LblSensors" Text="SENSÖRLER" Style="{StaticResource SectionHeader}"/>
                             <CheckBox x:Name="ChkShowGpuName" Style="{StaticResource ToggleSwitch}" Content="GPU Adını Göster" Checked="InteractiveElement_Changed" Unchecked="InteractiveElement_Changed"/>
                             <CheckBox x:Name="ChkShowCpu" Style="{StaticResource ToggleSwitch}" Content="CPU Sıcaklığı" Checked="InteractiveElement_Changed" Unchecked="InteractiveElement_Changed"/>
-                            <CheckBox x:Name="ChkShowGpu" Style="{StaticResource ToggleSwitch}" Content="GPU Sıcaklığı" Margin="0" Checked="InteractiveElement_Changed" Unchecked="InteractiveElement_Changed"/>
+                            <CheckBox x:Name="ChkShowGpu" Style="{StaticResource ToggleSwitch}" Content="GPU Sıcaklığı" Checked="InteractiveElement_Changed" Unchecked="InteractiveElement_Changed"/>
+                            <CheckBox x:Name="ChkShowRam" Style="{StaticResource ToggleSwitch}" Content="RAM Kullanımı" Checked="InteractiveElement_Changed" Unchecked="InteractiveElement_Changed"/>
+                            <CheckBox x:Name="ChkShowVram" Style="{StaticResource ToggleSwitch}" Content="VRAM Kullanımı" Margin="0" Checked="InteractiveElement_Changed" Unchecked="InteractiveElement_Changed"/>
                         </StackPanel>
                     </Border>
 
@@ -402,7 +411,7 @@
                     </Border>
                 </StackPanel>
 
-                <TextBlock Grid.Column="2" Text="Version Beta v2.0" Foreground="#444444" FontSize="10" 
+                <TextBlock Grid.Column="2" Text="Version Beta v3.0" Foreground="#444444" FontSize="10" 
                            HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="0,0,-6,-6"/>
             </Grid>
         </Grid>

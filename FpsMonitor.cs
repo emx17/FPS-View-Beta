@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Diagnostics;
 using System.Threading;
 using System.Threading.Tasks;
@@ -10,6 +10,18 @@ namespace FPSOverlay
     public class FpsMonitor : IDisposable
     {
         public int CurrentFps { get; private set; } = 0;
+        public float OnePercentLowFps { get; private set; } = 0;
+        public float CurrentFrametimeMs { get; private set; } = 0;
+        
+        private readonly object _frametimeLock = new object();
+        private Queue<float> _frametimes = new Queue<float>();
+        public float[] GetFrametimesSnapshot()
+        {
+            lock (_frametimeLock)
+            {
+                return _frametimes.ToArray();
+            }
+        }
         
         private int _activePid = 0;
         private CancellationTokenSource? _cts;
@@ -105,6 +117,25 @@ namespace FPSOverlay
                         if (isD3D9) Interlocked.Increment(ref _d3d9Count);
                         if (isDxgKrnl) Interlocked.Increment(ref _dxgKrnlCount);
 
+                        // Frametime calculation
+                        if (_lastFrameTs > 0)
+                        {
+                            float frameTimeMs = (float)((ts - _lastFrameTs) * 1000.0);
+                            if (frameTimeMs > 0 && frameTimeMs < 1000)
+                            {
+                                CurrentFrametimeMs = frameTimeMs;
+                                lock (_frametimeLock)
+                                {
+                                    _frametimes.Enqueue(frameTimeMs);
+                                    if (_frametimes.Count > 100)
+                                    {
+                                        _frametimes.Dequeue();
+                                    }
+                                }
+                            }
+                        }
+                        _lastFrameTs = ts;
+
                         double elapsed = ts - _startTs;
                         if (elapsed >= 1.0)
                         {
@@ -122,6 +153,8 @@ namespace FPSOverlay
                             else
                                 CurrentFps = 0;
 
+                            CalculateOnePercentLow();
+
                             _dxgiCount = 0;
                             _d3d9Count = 0;
                             _dxgKrnlCount = 0;
@@ -135,14 +168,41 @@ namespace FPSOverlay
             catch { }
         }
 
+        private double _lastFrameTs = 0;
+
+        private void CalculateOnePercentLow()
+        {
+            float[] times;
+            lock (_frametimeLock)
+            {
+                if (_frametimes.Count < 10) return;
+                times = _frametimes.ToArray();
+            }
+
+            Array.Sort(times);
+            Array.Reverse(times); // Sort descending (highest frame times = lowest FPS)
+            
+            int index = (int)(times.Length * 0.01);
+            if (index >= times.Length) index = times.Length - 1;
+            
+            float targetFrameTime = times[index];
+            if (targetFrameTime > 0)
+            {
+                OnePercentLowFps = 1000.0f / targetFrameTime;
+            }
+        }
+
         private void CalculationLoop(CancellationToken token)
         {
             while (!token.IsCancellationRequested)
             {
                 Thread.Sleep(250);
-                if (_activePid == 0) CurrentFps = 0;
-                
-
+                if (_activePid == 0) 
+                {
+                    CurrentFps = 0;
+                    OnePercentLowFps = 0;
+                    CurrentFrametimeMs = 0;
+                }
             }
         }
 
